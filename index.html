@@ -817,6 +817,10 @@ button:disabled{opacity:.45;cursor:default}
 .results{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}
 .results button{min-height:54px;border-radius:14px;border:1px solid var(--line);background:var(--paper);font-weight:600;font-size:16px;cursor:pointer}
 .results button.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.results button:last-child:nth-child(odd){grid-column:1/-1}
+.yacheck{margin:14px 0 0;padding:12px 14px;border-radius:14px;background:#fff7ed;border:1px solid #fed7aa}
+.yacheck p{margin:0 0 10px;font-size:15px}
+.walk .yacheck-btn{margin-top:8px}
 .next-h{margin:20px 0 4px;font-size:13px;font-weight:600;color:var(--ink-2)}
 .next-list{margin:0;padding:0;list-style:none}
 .next-list li{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}
@@ -1470,7 +1474,8 @@ textarea{width:100%;min-height:76px;padding:10px 12px;border:1px solid var(--lin
       function link(href, text) { if (href) links.push('<a class="btn btn-ghost btn-sm" href="' + esc(href) + '" target="_blank" rel="noopener">' + esc(text) + "</a>"); }
       if (p.w) link(p.w, "Сайт: " + p.w.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, ""));
       (p.so || []).forEach(function (x) { link(x[1], x[0]); });
-      link(p.l2, "2ГИС"); link(p.ly, "Яндекс Карты"); link(p.lo, "OpenStreetMap");
+      link(p.l2, "2ГИС"); link(p.ly || yaFindUrl(p, false), p.ly ? "Яндекс Карты" : "Найти в Яндекс Картах");
+      link(p.lo, "OpenStreetMap");
       var html = '<div class="card">' +
         '<div class="card-head" style="--c:' + s.color + ";--t:" + s.ink + '">' +
         '<span class="badge big" title="Приоритет: чем больше, тем раньше стоит зайти">' + p.p + "</span>" +
@@ -1482,6 +1487,9 @@ textarea{width:100%;min-height:76px;padding:10px 12px;border:1px solid var(--lin
         (p.ph && p.ph.length ? '<a class="btn btn-ghost" href="tel:' + tel(p.ph[0]) + '">Позвонить</a>' : "") + "</div>" +
         (hasLL(p) ? '<button class="btn btn-ghost btn-block" type="button" style="margin-top:8px" data-act="route-toggle" data-id="' + esc(p.id) + '">' +
           (inRoute ? "Убрать из плана обхода" : "Добавить в план обхода") + "</button>" : "") +
+        (p.chk ? '<div class="yacheck"><p>Сайта нет в ' + esc(p.chk) + ", но он может быть указан в Яндекс Картах. " +
+          "Проверьте до визита: если сайт там есть, отметьте ниже «Сайт есть» — точка уйдёт из обхода.</p>" +
+          '<button class="btn btn-ghost btn-block" type="button" data-act="ya-find" data-id="' + esc(p.id) + '">Проверить в Яндекс Картах</button></div>' : "") +
         (p.pts && p.pts.length ? '<h3>Что сказать владельцу</h3><ul class="points">' + p.pts.map(function (t) { return "<li>" + esc(t) + "</li>"; }).join("") + "</ul>" : "") +
         "<h3>Визит</h3>" + resultsGrid(p) +
         '<textarea data-note="' + esc(p.id) + '" placeholder="С кем говорили, что ответили, когда зайти ещё раз" aria-label="Комментарий к визиту">' + esc(m.n || "") + "</textarea>" +
@@ -1590,6 +1598,8 @@ textarea{width:100%;min-height:76px;padding:10px 12px;border:1px solid var(--lin
           '<button class="btn btn-ghost" type="button" data-act="walk-here">Я на месте</button></div>' +
           '<div class="row" style="margin-top:8px"><button class="btn btn-ghost btn-sm" type="button" data-act="walk-skip">Пропустить</button>' +
           '<button class="btn btn-ghost btn-sm" type="button" data-act="open-card" data-id="' + esc(t.id) + '">Подробнее</button></div>' +
+          (t.chk ? '<button class="btn btn-ghost btn-sm btn-block yacheck-btn" type="button" data-act="ya-find" data-id="' + esc(t.id) + '">' +
+            "Есть ли сайт? Проверить в Яндекс Картах</button>" : "") +
           (t.pts && t.pts.length ? '<div class="say"><h3>Что сказать</h3>' + t.pts.slice(0, 2).map(function (x) { return "<p>" + esc(x) + "</p>"; }).join("") + "</div>" : "");
       } else {
         html += "<p><b>Как прошло?</b> Отметьте результат — следующая точка подберётся сама.</p>" + resultsGrid(t) +
@@ -1751,6 +1761,15 @@ textarea{width:100%;min-height:76px;padding:10px 12px;border:1px solid var(--lin
         return u;
       }
       return null;
+    }
+    function yaFindUrl(p, forApp) {
+      var q = hasLL(p) ? "ll=" + p.lon.toFixed(6) + "," + p.lat.toFixed(6) + "&z=17&text=" + encodeURIComponent(p.n)
+        : "text=" + encodeURIComponent(p.n + " " + (p.a || META.title || ""));
+      return (forApp ? "yandexmaps://maps.yandex.ru/?" : "https://yandex.ru/maps/?") + q;
+    }
+    function yaFind(p) {
+      // приложение Яндекс Карт — только если человек сам выбрал его навигатором; иначе веб-версия
+      openExternal(yaFindUrl(p, IS_MOBILE && settings.nav === "yandex"));
     }
     function openExternal(url) {
       if (/^https?:/.test(url)) {
@@ -2075,6 +2094,7 @@ textarea{width:100%;min-height:76px;padding:10px 12px;border:1px solid var(--lin
           break;
         case "mark-reset": setMark(id, { v: false, r: "", n: "" }); renderCard(); break;
         case "nav-one": navigateTo([byId[id]]); break;
+        case "ya-find": if (byId[id]) yaFind(byId[id]); break;
         case "nav-choose":
           settings.nav = b.dataset.nav; saveSettings(); closeDialog();
           if (pendingNav) { var pn = pendingNav; pendingNav = null; navigateTo(pn); }
