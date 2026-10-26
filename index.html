@@ -1465,6 +1465,7 @@ textarea{width:100%;min-height:76px;padding:10px 12px;border:1px solid var(--lin
       if (p.a) lines.push(esc(p.a));
       if (d != null) lines.push(fmtDist(d) + " от вас");
       if (p.sch) lines.push(esc(p.sch));
+      if (p.vf) lines.push("✓ " + esc(p.vf));
       if (p.ph && p.ph.length) lines.push(p.ph.map(function (x) { return '<a href="tel:' + tel(x) + '">' + esc(x) + "</a>"; }).join(", "));
       var facts = [];
       function fact(label, value) { if (value !== null && value !== undefined && value !== "") facts.push("<div><dt>" + label + "</dt><dd>" + esc(value) + "</dd></div>"); }
